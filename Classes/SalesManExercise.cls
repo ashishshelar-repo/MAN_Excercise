@@ -31,9 +31,13 @@ public class SalesManExercise {
                     AssetDetailCls assetWrapper = (AssetDetailCls) JSON.deserialize(res.getBody(), AssetDetailCls.class);
                     list<AssetDetailCls.warranty> warrantyList= new list<AssetDetailCls.warranty>();
 					AssetDetailCls.vehicleAggregate telematicsDetails=new AssetDetailCls.vehicleAggregate();
+					AssetDetailCls.maintenance maintenanceDetails=new AssetDetailCls.maintenance();
 
 					warrantyList=assetWrapper.warranty;
             		telematicsDetails= assetWrapper.vehicleAggregate;
+					maintenanceDetails= assetWrapper.maintenance;
+                 
+                   
 					
 					system.debug('vin'+assetWrapper.vin );
                     Asset assetRec=[SELECT id from asset where id in :recordids  ];  // in :recordids
@@ -44,7 +48,7 @@ public class SalesManExercise {
                         
                             system.debug('###inside IF '+assetWrapper.vin + assetWrapper.vehicleType+assetWrapper.vehicleNum+ assetWrapper.truckAxle );
 							system.debug('### telematicsDetails.motor.vin'+ telematicsDetails.motor.vin);
-                         //   system.debug('### telematicsDetails.motor.vin'+ assetWrapper.telematicsDetails.motor.vin);
+                            //   system.debug('### telematicsDetails.motor.vin'+ assetWrapper.telematicsDetails.motor.vin);
 
 							// Get Vehicle Details 
                             assetRec.vin__c= assetWrapper.vin ;
@@ -114,6 +118,7 @@ public class SalesManExercise {
 		 			}
                     
  					/* Get Warranty Details for Vehicle */
+					list<Warranty__c> warrantyRecords=new list<Warranty__c>();
                     for(AssetDetailCls.warranty warrantyVar:warrantyList){
             	                 	Warranty__c warrantyRec=new Warranty__c();	
                                     warrantyRec.typeText__c= warrantyVar.typeText;
@@ -125,9 +130,32 @@ public class SalesManExercise {
 									warrantyRec.totalMilageFrom__c= warrantyVar.totalMilageFrom;	
 									warrantyRec.wholeMilage__c= warrantyVar.wholeMilage;
                                     warrantyRec.asset__c=recordids[0];
-                        
-                        INSERT warrantyRec; 
+		
+									warrantyRecords.add(warrantyRec);
                     } 
+        
+                    if(warrantyRecords <> null && warrantyRecords.size() > 0){
+                         INSERT warrantyRecords; 
+                    }
+	
+					list<Vehicle_Maintenance__c> maintenancelist=new list<Vehicle_Maintenance__c>();
+					system.debug('## maintenance plans'+maintenanceDetails.plan );
+                    for(AssetDetailCls.plan maintenancePlanVar:maintenanceDetails.plan){
+                        	Vehicle_Maintenance__c vehicleMaintenanceVar=new Vehicle_Maintenance__c();
+							vehicleMaintenanceVar.vin__c= maintenancePlanVar.vin;
+							vehicleMaintenanceVar.Asset__c=recordids[0];
+                            vehicleMaintenanceVar.mpType__c=maintenancePlanVar.mpType ;
+                            vehicleMaintenanceVar.serviceCode__c=maintenancePlanVar.serviceCode ;
+                            vehicleMaintenanceVar.lastMaintKM__c=maintenancePlanVar.lastMaintKM ;
+                            vehicleMaintenanceVar.nextMaintKM__c=maintenancePlanVar.nextMaintKM ;
+                        	vehicleMaintenanceVar.nextMaintDate__c=maintenancePlanVar.nextMaintDate;
+							vehicleMaintenanceVar.salesOrg__c=maintenancePlanVar.serviceCodeDesc;
+							maintenancelist.add(vehicleMaintenanceVar);
+                    }
+
+					if(maintenancelist <> null && maintenancelist.size() > 0){
+                         INSERT maintenancelist; 
+                    }
 
 		 } catch (Exception e) {
             System.debug('Error: ' + e.getMessage());
